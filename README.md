@@ -1,0 +1,1 @@
+Testing Terragrunt and new file layout, includes S3 bucket with encryption, versioning, autoscaling resourses, simple web application, etc.
