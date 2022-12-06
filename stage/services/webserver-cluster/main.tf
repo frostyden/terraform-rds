@@ -1,20 +1,4 @@
-# resource "aws_instance" "example" {
-#   ami           = "ami-06148e0e81e5187c8"
-#   instance_type = "t2.micro"
-#   vpc_security_group_ids = [ "${aws_security_group.instance.id}" ]
-
-#   user_data = <<-EOF
-#               #!/bin/bash
-#               echo "Hello World" > index.html
-#               nohup busybox httpd -f -p ${var.server_port} &
-#               EOF
-
-#   tags = {
-#     "name" = "terraform-example"
-#   }
-# }
-
-#Autoscaling group with 2 to 10 instances 
+#Autoscaling group with 2 to 4 instances 
 resource "aws_autoscaling_group" "aag_example" {
   launch_configuration = aws_launch_configuration.alc_example.id
   availability_zones   = data.aws_availability_zones.all.names
@@ -23,7 +7,7 @@ resource "aws_autoscaling_group" "aag_example" {
   health_check_type = "ELB"
 
   min_size = 2
-  max_size = 10
+  max_size = 4
 
   tag {
     key                 = "Name"
@@ -39,11 +23,13 @@ resource "aws_launch_configuration" "alc_example" {
   instance_type   = "t2.micro"
   security_groups = ["${aws_security_group.instance.id}"]
 
-  user_data = <<-EOF
-              #!/bin/bash
-              echo "Hello World" > index.html
-              nohup busybox httpd -f -p ${var.server_port} &
-              EOF
+
+#After making changes to script, application does not change, troubleshoot it
+  user_data = templatefile("user-data.sh", {
+    server_port = var.server_port
+    db_address  = data.terraform_remote_state.db.outputs.address
+    db_port     = data.terraform_remote_state.db.outputs.port
+  })
 
   lifecycle {
     create_before_destroy = true
@@ -125,8 +111,31 @@ resource "aws_security_group" "elb" {
 #Public key to access the instance
 resource "aws_key_pair" "public_key" {
   key_name   = "denizkin-key"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCe8Wi0DVJpp/UhrSq6xACziaSZPniZsonNOuGIKutCCWJvTH8TpQh6vq/VyQdFXY6EtX0qoWUIrx65X6db1IDAS7T6PtiJQ3RkLnMyJn60E7Jsr9PlwkYWa3id6ZNMK3Ecih11QYgZhWC/u2+kbTEmzpX/AJwGjprxYiOsCVpbjPRMI3H8xx/5KaS2bczITgZuzeED7qTSNdF48MGiPguuBfI4KaEpKaNxQidgDpq1MTGpj+QTd3ypwxmEqJ5aMxNXLCv+gMSJztEHd9nbd7jkSisjBEFsiscY4/n1ind9EdkENGJwjGWhBAs9GztkA2AtMM6J02dj6QYKxHW672Ntiuh9AWdrlaLmPJVx1Oi4tFJjR3A+Il8zuqSwaslrM6jf22R11kLDAbSxRpF9Bu/Ry2Ef8NUrc9EvUJthPtRlobv2t6jGCjXUpbyZSXst4le0qFlOxHM4KsT3o6A21kVs2DGRyukEiPrk+fB0fBWSO5bP1/WHN4ITs0mV4FAG4y0= frosty@Denizs-MacBook-Pro-2.local"
+  public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAi3ubmdmIuisvWZ0saPz5mfiTBAKg1FCVpntoxvV2Wp fdenfrost@gmail.com"
 
 }
 
 data "aws_availability_zones" "all" {}
+
+#Read db data from remote state file
+data "terraform_remote_state" "db" {
+  backend = "s3"
+  config = {
+    bucket = "terraform-up-and-running-state-for-denizkin"
+    key    = "stage/data-stores/mysql/terraform.tfstate"
+    region = "eu-central-1"
+  }
+}
+
+# Did not work, couldn't run app on instance
+# data "template_file" "user_data" {
+#   //template = file("user-data.sh")
+#   template = "${file("${path.module}/user-data.sh")}"
+
+#   vars = {
+#     server_port = var.server_port
+#     db_address  = data.terraform_remote_state.db.outputs.address 
+#     db_port     = data.terraform_remote_state.db.outputs.port 
+#   }
+# }
+
