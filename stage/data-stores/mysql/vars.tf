@@ -1,3 +1,3 @@
-variable "db_password" {
-  description = "database password"
+variable "stage_db_password" {
+  description = "Database password for stage ENV"
 }

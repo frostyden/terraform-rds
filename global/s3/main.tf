@@ -4,8 +4,6 @@ provider "aws" {
 
 resource "aws_s3_bucket" "terraform_state_bucket" {
   bucket = "terraform-up-and-running-state-for-denizkin"
-  # since deprecated
-  # acl = "private" 
   
   #force_destroy = false
 
@@ -47,8 +45,18 @@ resource "aws_s3_bucket_versioning" "name" {
   }
 }
 
-# Commenting this since this configuration is initialized in backend.hcl file
 # USE THIS BEFORE TERRAGRUNT TO PUSH STATE FILE TO REMOTE S3 BUCKET!!!!!!!!
+# Commenting this since this configuration is initialized in backend.hcl file
+
+# terraform init
+# terraform plan
+# terraform apply
+# Uncomment terraform block to push state file to S3 bucket, and run
+# terraform init -reconfigure
+# Comment terraform block
+# terragrunt init
+# terragrunt plan
+
 # terraform {
 #   backend "s3" {
 #     bucket = "terraform-up-and-running-state-for-denizkin"
